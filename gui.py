@@ -5,25 +5,22 @@ import PIL
 import numpy as np
 import win32gui
 from PIL import ImageGrab
+from keras.models import load_model
 
-import pickle
-
-
-model = pickle.load(open('./model1.h5', 'rb'))
-
+model = load_model('model1.h5')
 
 
 def predict_digit(img):
-    
+    # resize image to 28x28 pixels
     img = img.resize((28, 28))
-    
+    # convert rgb to grayscale
     img = img.convert('L')
     img = np.invert(np.array(img))
-    
-    img = img.reshape(1,-1)
-    
-    res = model.predict(img)
-    return res[0]
+    # reshaping to support our model input and normalizing
+    img = img.reshape(-1, 28, 28, 1)
+    # predicting the class
+    res = model.predict([img])
+    return np.argmax(res)
 
 
 class App(tk.Tk):
@@ -51,8 +48,8 @@ class App(tk.Tk):
         self.canvas.delete("all")
 
     def classify_handwriting(self):
-        hwnd = self.canvas.winfo_id()  
-        rect = win32gui.GetWindowRect(hwnd) 
+        hwnd = self.canvas.winfo_id()  # get the handle of the canvas
+        rect = win32gui.GetWindowRect(hwnd)  # get the coordinate of the canvas
         a, b, c, d = rect
         rect = (a + 4, b + 4, c - 4, d - 4)
         im = ImageGrab.grab(rect)
@@ -65,7 +62,6 @@ class App(tk.Tk):
 
         digit = predict_digit(im)
         self.label.configure(text=str(digit))
-        # self.clear_all()
 
     def draw_lines(self, event):
         self.x = event.x
